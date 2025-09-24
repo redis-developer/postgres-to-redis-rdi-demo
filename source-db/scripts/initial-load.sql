@@ -140,7 +140,7 @@ BEGIN
             generated_username,
             selected_first_name,
             selected_last_name,
-            generated_username || '@example.com'
+            generated_username || '@example.com' ON CONFLICT DO NOTHING
         )
         RETURNING id INTO user_id;
         
