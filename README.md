@@ -206,7 +206,7 @@ This project contains a [PostgreSQL](https://www.postgresql.org) database with a
 
 5. The PostgreSQL database is accessible at:
 
-	- Host: `localhost`
+	- Host: `postgres`
 	- Port: `5432`
 	- User: `postgres`
 	- Password: `postgres`
@@ -280,7 +280,7 @@ Login using:
 
 Once you have logged in, you will access the object explorer. The first time you access the object explorer you will need to register the source database. Use the following values to register:
 
-- Host: `postgres` (This is not a typo. Here you should not use `localhost`)
+- Host: `postgres`
 - Port: `5432`
 - User: `postgres`
 - Password: `postgres`
