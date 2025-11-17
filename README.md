@@ -129,17 +129,6 @@ cd rdi-deploy
 ./rdi-deploy-clouddb.sh
 ```
 
-This script will:
-
-- Install the NGINX ingress controller using Helm
-- Create the `rdi` namespace in your K8S cluster
-- Initialize and apply Terraform to create a Redis Cloud database
-- Download the RDI Helm chart if needed
-- Extract connection details from Terraform outputs and variables
-- Generate a secure JWT key to be used with RDI API
-- Create a custom `rdi-values.yaml` for Helm deployment
-- Install RDI using Helm with the generated values
-
 The script has a 5-minute wait strategy for most of the resources created. If some resource takes more than 5 minutes, the script will halt. If this happens, don't worry. Just execute the script again, and it will pick up where it left off.
 
 To monitor the deployment:
