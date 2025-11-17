@@ -1,31 +1,51 @@
-# Take me down to Paradise City where the database status is green and my Redis is speedy 🎶
+# PostgreSQL to Redis RDI Demo
 
-Developers often use disk-based databases (PostgreSQL, MongoDB, and Oracle) as the single source of truth for data because they offer widely adopted programming models. However, despite their popularity, most suffer from one fundamental problem: the database becomes slower as more data is stored. To mitigate this problem, [Redis](https://redis.io/open-source) is used as a caching layer to speed up read queries and considerably offload the database load. This approach helps companies to save money by eliminating the use of expensive read replicas. But how do we continuously move the data from the database to Redis without writing tons of code, using different distributed systems, and wasting lots of time?
+## Overview
 
-You can use [Redis Data Integration (RDI)](https://redis.io/data-integration) for this. RDI updates Redis with any changes made in a source database, using a [Change Data Capture (CDC)](https://en.wikipedia.org/wiki/Change_data_capture) mechanism. After performing an initial snapshot of the source database and moving the existing data, it will capture any database changes in the form of data streams and store them at the RDI database for processing, which happens as those data streams are written. Transformations are supported and applied before the final data is written into the target database. The best part? All of this is configuration, not coding!
+![PostgreSQL to Redis RDI Demo!](/images/pg-2-redis-demo.png "PostgreSQL to Redis RDI Demo")
 
-![RDI architecture!](/images/rdi-architecture.png "RDI architecture")
+This demo showcases how Redis Data Integration (RDI) can continuously synchronize data from PostgreSQL to Redis using Change Data Capture (CDC), eliminating the need for complex custom code. Built with PostgreSQL, Redis Cloud, and Kubernetes, it demonstrates how RDI can speed up applications by maintaining a real-time Redis cache layer that offloads read operations from the primary database. The solution highlights RDI's configuration-driven approach to data streaming and transformation capabilities.
 
-RDI is designed to support apps that use a disk-based database as the system of record, but it must also be fast and scalable. This is a common requirement for mobile, web, and AI apps with a rapidly growing number of users; the performance of the central database is acceptable at first, but it will soon struggle to handle the increasing demand without a cache.
+## Table of Contents
+- [Demo Objectives](#demo-objectives)
+- [Setup](#setup)
+- [Running the Demo](#running-the-demo)
+- [Slide Deck](#slide-deck)
+- [Architecture](#architecture)
+- [Known Issues](#known-issues)
+- [Resources](#resources)
+- [Maintainers](#maintainers)
+- [License](#license)
 
-This repository demonstrates how to install, deploy, and use RDI with a fairly realistic use case. You start with a [PostgreSQL](https://www.postgresql.org) database running on-premises containing data from an e-commerce, and you use RDI to continuously move data to a Redis database running on [Redis Cloud](https://redis.io/cloud).
+## Demo Objectives
 
-## 📋 Requirements
+- Demonstrate Redis Data Integration (RDI) for real-time database synchronization
+- Show Change Data Capture (CDC) streaming from PostgreSQL to Redis
+- Highlight configuration-driven data pipelines without custom code
+- Illustrate data transformation capabilities during streaming
+- Showcase Redis as a high-performance caching layer for disk-based databases
 
- * Docker: https://docs.docker.com/get-started/get-docker
- * Kubernetes: https://kubernetes.io/releases/download
- * Helm charts: https://helm.sh/docs/intro/install
- * Terraform: https://developer.hashicorp.com/terraform/install
- * Redis Insight: https://redis.io/insight
- * Redis Cloud: https://redis.io/try-free
+## Setup
 
-## 🚀 Deploying RDI
+### Dependencies
+
+- Docker 24+
+- Kubernetes (minikube, kind, or Docker Desktop)
+- Helm Charts 3.0+
+- Terraform 1.5+
+- Redis Insight
+- Redis Cloud account (for cloud deployment option)
+- Minimum K8S cluster resources: 4 CPUs, 8 GB memory, 25 GB disk
+
+### Configuration
+
+#### 🚀 Deploying RDI
 
 To deploy RDI, you'll need a Kubernetes (K8S) cluster. This workflow ensures all dependencies (Ingress, database, and RDI) are managed and deployed in the correct order, with secure configuration and easy cleanup. Though you can use any K8S distribution, you don't quite need a production-ready K8S cluster. Any local K8S deployment will suffice. Development clusters of K8S, like [minikube](https://minikube.sigs.k8s.io/docs/start), [kind](https://kind.sigs.k8s.io), or [Docker Desktop](https://docs.docker.com/desktop/features/kubernetes), will do just fine.
 
 However, you must be mindful of the resources you dedicate to your K8S cluster. To execute this demo smoothly, you must dedicate at least **4 CPUs**, **8 GB of memory**, and **25 GB of disk** to the underlying infrastructure that runs your cluster. Anything less than this will cause the pods to continuously crash and be recreated, making your K8S cluster unstable. Please note that these hardware requirements are not for the host machine that runs your cluster, but for the cluster itself. Once your K8S cluster runs, the RDI deployment is fully automated using scripts in the `rdi-deploy` folder.
 
-### 🏠 Running RDI on K8S with a local database
+#### 🏠 Running RDI on K8S with a local database
 
 This option deploys RDI on K8S along with its backend database. This is ideal if you want an all-batteries-included installation of RDI. This option also saves you from spinning up a database on Redis Cloud, which can incur costs.
 
@@ -35,18 +55,6 @@ To deploy RDI with a local database, open a terminal and run:
 cd rdi-deploy
 ./rdi-deploy-localdb.sh
 ```
-
-This script will:
-
-- Install the NGINX ingress controller using Helm
-- Create the `rdi` namespace in your K8S cluster
-- Deploy Redis Enterprise and custom resources
-- Deploy the RDI database and wait for it to be ready
-- Download the RDI Helm chart if not present already
-- Extract connection details from Kubernetes secrets
-- Generate a secure JWT key to be used with RDI API
-- Create a custom `rdi-values.yaml` for Helm deployment
-- Install RDI using Helm with the generated values
 
 The script has a 5-minute wait strategy for most of the resources created. If some resource takes more than 5 minutes, the script will halt. If this happens, don't worry. Just execute the script again, and it will pick up where it left off.
 
@@ -90,7 +98,7 @@ cd rdi-deploy
 ./rdi-undeploy-localdb.sh
 ```
 
-### ☁️ Running RDI on K8S with a database on Redis Cloud
+#### ☁️ Running RDI on K8S with a database on Redis Cloud
 
 This option deploys RDI on K8S and a backend database running on Redis Cloud. This is ideal if you want an RDI installation with a database that can scale to your needs, especially if you plan to extend this workload to perform intensive data processing from a source database.
 
@@ -171,7 +179,9 @@ cd rdi-deploy
 ./rdi-undeploy-clouddb.sh
 ```
 
-## 🐘 Running the source database
+## Running the Demo
+
+### Running the source database
 
 This project contains a [PostgreSQL](https://www.postgresql.org) database with an e-commerce dataset that will be used as source data. You must get this database up and running to play with this demo. In the folder `source-db`, you will find a Docker Compose file that will spin up the database and load with data, as well as an instance of [pgAdmin](https://www.pgadmin.org) you can use to access the database.
 
@@ -218,9 +228,11 @@ Once you have done with this demo, you can stop the services:
 docker compose down
 ```
 
-## 🎯 Running the target database
+###  Running the target database
 
 The target database will be the Redis database, which will receive the data from RDI. In this use case, the target database represents the database from which your application will read the data, regardless of whether the data was written into the PostgreSQL database. You are going to create this database on Redis Cloud using Terraform. The target database is slightly different from the one used by RDI. It requires fewer resources and doesn't need persistence enabled. For this reason, the Terraform code used will not require a paid database on Redis Cloud; it will use the free plan available for all Redis Cloud users.
+
+> 💡 **Tip**: Redis Cloud only allows one free-tier database per account. If your account already contains a free-tier database, the steps below won't work as Terraform will fail to create the database. In this case, create a new database manually.
 
 To create the target Redis database:
 
@@ -258,18 +270,11 @@ Once you have done with this demo, you can destroy the database:
 terraform destroy -auto-approve
 ```
 
-## ⚡ Using RDI for data streaming
+### Using RDI for data streaming
 
 Now that everything has been properly deployed, you can start the fun part, which is using RDI to stream data changes from the source database to the target database.
 
-In this section, you will:
-
-* Investigate your current dataset using pgAdmin.
-* Use Redis Insight to access your RDI deployment.
-* Deploy a RDI pipeline to stream data to Redis.
-* Use Redis Insight to verify if data is available.
-
-Open a browser and point to `http://localhost:8888`.
+1. Open a browser and point to `http://localhost:8888`.
 
 ![pgAdmin login!](/images/pgAdmin-login.png "pgAdmin login")
 
@@ -278,7 +283,7 @@ Login using:
 * Email: `admin@postgres.com`
 * Password: `pgadmin4pwd`
 
-Once you have logged in, you will access the object explorer. The first time you access the object explorer you will need to register the source database. Use the following values to register:
+2. Once you have logged in, you will access the object explorer. The first time you access the object explorer you will need to register the source database. Use the following values to register:
 
 - Host: `postgres`
 - Port: `5432`
@@ -293,7 +298,7 @@ This means you are ready to start the data streaming process. Open Redis Insight
 
 ![RDI wizard!](/images/ri-empty-rdi.png "RDI wizard")
 
-Click in the `Add RDI Endpoint` button. The folllowing screen will show up:
+3. Click in the `Add RDI Endpoint` button. The folllowing screen will show up:
 
 ![RDI endpoint!](/images/ri-rdi-endpoint.png "RDI endpoint")
 
@@ -303,26 +308,26 @@ Fill the screen with the values shown in the picture above. As for the password,
 > 💡 **Tip**: Depending on which K8S cluster you are running, Redis Insight won't be able to access your RDI deployment using `https://localhost`. This is undoubtedly the case with minikube. If 
 you're using minikube, you must manually create a tunnel to expose the RDI APIs to the external world. Open a new terminal and run `minikube tunnel`. It will ask you for your host password. Leave the terminal open throughout the duration of the demo. You can find more information about this [here](https://minikube.sigs.k8s.io/docs/commands/tunnel).
 
-Once you access your RDI endpoint, you can start the configuration of your pipeline. For this step, you can use the code available at the file [pipeline-config.yaml](./pipeline-config.yaml). You should add this code to the pipeline editor.
+4. Once you access your RDI endpoint, you can start the configuration of your pipeline. For this step, you can use the code available at the file [pipeline-config.yaml](./pipeline-config.yaml). You should add this code to the pipeline editor.
 
 ![Pipeline configuration!](/images/ri-new-pipeline.png "Pipeline configuration")
 
 > 💡 **Tip**: Depending on which K8S cluster you are running, RDI won't be able to access your PostgreSQL database using `localhost`. This is undoubtedly the case with minikube and kind. If you're using minikube, replace `localhost` with `host.minikube.internal`. Otherwise, if you're using kind, replace `localhost` with `host.docker.internal`.
 
-Replace the values of the variables `${REDIS_DATABASE_HOST}` and `${REDIS_DATABASE_PORT}` with the values from the target database you created on Redis Cloud. You can retrieve these values in your Redis Cloud account using the console. However, an easiest way is by running the command `terraform output` in the `target-db` folder. You should see an output similar to this:
+5. Replace the values of the variables `${REDIS_DATABASE_HOST}` and `${REDIS_DATABASE_PORT}` with the values from the target database you created on Redis Cloud. You can retrieve these values in your Redis Cloud account using the console. However, an easiest way is by running the command `terraform output` in the `target-db` folder. You should see an output similar to this:
 
 ```sh
 redis_database_host = "redis-00000.c84.us-east-1-2.ec2.redns.redis-cloud.com"
 redis_database_port = "00000"
 ```
 
-Once you have finished updating the variables, go ahead and deploy the pipeline. This process may take a few minutes, as RDI performs an initial snapshot of the source database to create a data stream for each table found and start the streaming. Once the process finishes, you should be able to navigate to the `Pipeline Status` tab to check the status of your pipeline.
+6. Once you have finished updating the variables, go ahead and deploy the pipeline. This process may take a few minutes, as RDI performs an initial snapshot of the source database to create a data stream for each table found and start the streaming. Once the process finishes, you should be able to navigate to the `Pipeline Status` tab to check the status of your pipeline.
 
 ![Pipeline status!](/images/ri-pipeline-status.png "Pipeline status")
 
 The pipeline should report `78 records` inserted into the target database and a unique counter for each source table viewed as a data stream. This means your RDI deployment is working as expected. At this point, whatever data you write into the source database will instantly stream to Redis. You can verify this by accessing your target database in Redis Cloud.
 
-Access your database using the Redis Cloud console. Then click `Connect` and `Open in desktop`.
+7. Access your database using the Redis Cloud console. Then click `Connect` and `Open in desktop`.
 
 ![TargetDB connect!](/images/targetdb-connect.png "TargetDB connect")
 
@@ -332,24 +337,53 @@ This should open your target database on Redis Insight, allowing you to visualiz
 
 These `78 keys` represents the initial snapshot RDI performs in the source database to create the respective data streams. Once created, any data written in the source database should emit an event that RDI will capture and stream into the target database. This includes any **INSERT**, **UPDATE**, and **DELETE** operations. To verify this, you can use the script [demo-multiple-users.sql](./demo-multiple-users.sql) that adds roughly `50` users into the table `user`.
 
-## ⚙️ Adding transformation jobs
-
 One cool feature of RDI that you can leverage is the ability to transform data as it is streamed into the target database. You can create one or more [job files](https://redis.io/docs/latest/integrate/redis-data-integration/data-pipelines/transform-examples/) that will be used along with the data pipeline during the data streaming. Let's practice this with one example.
 
-First, go to Redis Insight and stop and reset your data pipeline. This will allow you to change your data pipeline without streaming any data. Click the plus sign under `Add transformation jobs` in `Pipeline Management`. Name this job `custom-job` and define it using the code available in the file [custom-job-v2.yaml](./custom-job-v2.yaml).
+8. First, go to Redis Insight and stop and reset your data pipeline. This will allow you to change your data pipeline without streaming any data. Click the plus sign under `Add transformation jobs` in `Pipeline Management`. Name this job `custom-job` and define it using the code available in the file [custom-job-v2.yaml](./custom-job-v2.yaml).
 
 ![Custom job!](/images/ri-custom-job.png "Custom job")
 
 This job performs three operations, all related to the `user` table. First, it changes the data's output from [Hashes](https://redis.io/docs/latest/develop/data-types/hashes) to [JSON](https://redis.io/docs/latest/develop/data-types/json). Second, it adds a new field into the target called `display_name` that will have as its value the values `first_name` and `last_name` concatenated. Third, it will add another field called `user_type` with two possible values: `internal` or `external`, depending on the user's email hostname.
 
-Let's verify this. On Redis Insight, start your data pipeline again so any new data can be streamed into the target. Now use the script [demo-add-user.sql](./demo-add-user.sql) to insert a new row into the table `user`. Once you execute that script, check Redis Insight and observe the keys from your target database. You should have a new key with a JSON version of the user.
+9. Let's verify this. On Redis Insight, start your data pipeline again so any new data can be streamed into the target. Now use the script [demo-add-user.sql](./demo-add-user.sql) to insert a new row into the table `user`. Once you execute that script, check Redis Insight and observe the keys from your target database. You should have a new key with a JSON version of the user.
 
 ![New JSON key!](/images/ri-new-json-key.png "New JSON key")
 
-However, the user type is still `internal` as their email contains `@example.com.` Let's change the email in the source table to trigger the update and the execution of the job transformation. Go ahead and use the script [demo-modify-user.sql](./demo-modify-user.sql) to update the user's email. You may need to identify which `id` is associated with the user before running the script, as you may need to update the **WHERE** clause of the SQL statement. Once you execute the script, you should immediately see the update in the target database.
+10. However, the user type is still `internal` as their email contains `@example.com.` Let's change the email in the source table to trigger the update and the execution of the job transformation. Go ahead and use the script [demo-modify-user.sql](./demo-modify-user.sql) to update the user's email. You may need to identify which `id` is associated with the user before running the script, as you may need to update the **WHERE** clause of the SQL statement. Once you execute the script, you should immediately see the update in the target database.
 
 ![User type!](/images/ri-user-type.png "User type")
 
+## Slide Deck
+
+📑 [PostgreSQL to Redis RDI Demo Presentation](./slides/postgres-to-redis-rdi-demo.pdf)  
+*Covers cold cache problem overview, options for CDC, RDI architecture, and examples of transformations.*
+
+## Architecture
+
+![Architecture Diagram](./images/pg-2-redis-demo.png)
+
+PostgreSQL serves as the source database with CDC enabled. RDI captures database changes as streams, applies optional transformations via job configurations, and writes the processed data to the target Redis database. The entire pipeline operates through configuration rather than custom code, with Redis Insight providing monitoring and management capabilities.
+
+## Known Issues
+
+- Kubernetes tunnel required for minikube deployments (`minikube tunnel`)
+- Use `host.minikube.internal` instead of `localhost` for minikube
+- Use `host.docker.internal` instead of `localhost` for kind
+- Redis Cloud free tier limitation: only one DB per account
+
+## Resources
+
+- [Redis Data Integration Documentation](https://redis.io/docs/latest/integrate/redis-data-integration/)
+- [Change Data Capture Overview](https://en.wikipedia.org/wiki/Change_data_capture)
+- [Redis Cloud Documentation](https://redis.io/docs/latest/operate/rc/)
+- [PostgreSQL Debezium Connector](https://debezium.io/documentation/reference/stable/connectors/postgresql.html)
+- [Redis Insight Documentation](https://redis.io/docs/latest/operate/redisinsight/)
+
+## Maintainers
+
+**Maintainers:**  
+- Ricardo Ferreira — [riferrei](https://github.com/riferrei)
+
 ## License
 
-This project is licensed under the **[MIT license](LICENSE)**.
+This project is licensed under the [MIT License](./LICENSE).
