@@ -2,8 +2,6 @@
 
 ## Overview
 
-![PostgreSQL to Redis RDI Demo!](/images/pg-2-redis-demo.png "PostgreSQL to Redis RDI Demo")
-
 This demo showcases how Redis Data Integration (RDI) can continuously synchronize data from PostgreSQL to Redis using Change Data Capture (CDC), eliminating the need for complex custom code. Built with PostgreSQL, Redis Cloud, and Kubernetes, it demonstrates how RDI can speed up applications by maintaining a real-time Redis cache layer that offloads read operations from the primary database. The solution highlights RDI's configuration-driven approach to data streaming and transformation capabilities.
 
 ## Table of Contents
